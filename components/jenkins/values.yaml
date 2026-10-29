@@ -1,0 +1,69 @@
+controller:
+  admin:
+    username: admin
+    # пароль генерирует чарт (секрет jenkins/jenkins), up.ps1 печатает его в конце
+
+  # UI: http://localhost:8090 (NodePort → extraPortMappings в kind-config)
+  serviceType: NodePort
+  nodePort: 30090
+  jenkinsUrl: http://localhost:8090
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+
+  additionalPlugins:
+    - job-dsl:latest                # джобы описываются в JCasC ниже
+    - pipeline-utility-steps:latest # readJSON для отчётов QG
+    - pipeline-graph-view:latest    # наглядный граф стадий
+
+  # Секрет jenkins-github (ключ token) создаёт up.ps1 из GITHUB_TOKEN.
+  # В JCasC доступен как ${jenkins-github-token}.
+  additionalExistingSecrets:
+    - name: jenkins-github
+      keyName: token
+
+  JCasC:
+    configScripts:
+      welcome: |
+        jenkins:
+          systemMessage: "GitOps-стенд: Jenkins → Quality Gate (эмуляция SCA) → GitHub Actions → ghcr → Kargo"
+      credentials: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - string:
+                      scope: GLOBAL
+                      id: github-token
+                      description: GitHub PAT для запуска сборки в gitops-main
+                      secret: "${jenkins-github-token}"
+      jobs: |
+        jobs:
+          - script: >
+              folder('gitops-stand') {
+                description('Пайплайны тестового стенда')
+              }
+          - script: >
+              pipelineJob('gitops-stand/app-release') {
+                description('Проверки + Quality Gate (эмуляция SCA) → сборка образа → Kargo')
+                definition {
+                  cpsScm {
+                    scm {
+                      git {
+                        remote { url('https://github.com/PonamaryovMV/jenkins.git') }
+                        branch('*/main')
+                      }
+                    }
+                    scriptPath('Jenkinsfile')
+                    lightweight(true)
+                  }
+                }
+              }
+
+persistence:
+  enabled: true
+  size: 4Gi

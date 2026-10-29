@@ -1,0 +1,7 @@
+# Jenkins 2.580.2 (chart 5.10.5) — CI с эмуляцией Quality Gate (SCA).
+# Пайплайн берётся из https://github.com/PonamaryovMV/jenkins (Jenkinsfile).
+namespace: jenkins
+chart:
+  repoURL: https://charts.jenkins.io
+  name: jenkins
+  version: 5.10.5
