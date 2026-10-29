@@ -1,0 +1,6 @@
+# Kargo v1.12.5 — OCI-чарт (репозиторий с enableOCI описан в infra/argocd/repositories.yaml)
+namespace: kargo
+chart:
+  repoURL: ghcr.io/akuity/kargo-charts
+  name: kargo
+  version: 1.12.5

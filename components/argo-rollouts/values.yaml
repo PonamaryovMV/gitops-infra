@@ -1,0 +1,10 @@
+installCRDs: true
+keepCRDs: true
+
+controller:
+  replicas: 1
+
+# Отдельный дашборд не нужен — шаги canary видны в Argo CD через rollout-extension.
+# Включите, если хотите сравнить: kubectl -n argo-rollouts port-forward svc/argo-rollouts-dashboard 3100
+dashboard:
+  enabled: false

@@ -1,0 +1,23 @@
+api:
+  # UI/API: http://localhost:8081 (NodePort → extraPortMappings в kind-config)
+  host: localhost:8081
+  service:
+    type: NodePort
+    nodePort: 30081
+  tls:
+    enabled: false
+  # Секрет kargo-api (хэш пароля admin + ключ подписи) создаёт scripts/up.sh,
+  # чтобы ничего секретного не лежало в публичном репозитории.
+  secret:
+    name: kargo-api
+  argocd:
+    urls:
+      "": http://localhost:8080
+
+controller:
+  argocd:
+    namespace: argocd
+  reconcilers:
+    warehouses:
+      # Стенд: новые образы подхватываются за ~30с, а не за 5 минут
+      minReconciliationInterval: 30s
