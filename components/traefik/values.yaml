@@ -17,3 +17,11 @@ ingressClass:
 providers:
   kubernetesIngress:
     enabled: true
+    # Сервис NodePort не получает внешний адрес, и без этого у Ingress пустой status.loadBalancer →
+    # Argo CD считает Ingress (а значит и приложение) Progressing, а Kargo висит в Verifying.
+    # Публикуем в status всех Ingress адрес 127.0.0.1 — Ingress становится Healthy.
+    publishedService:
+      enabled: false
+
+additionalArguments:
+  - --providers.kubernetesingress.ingressendpoint.ip=127.0.0.1
