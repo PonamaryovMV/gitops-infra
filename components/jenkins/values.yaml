@@ -1,7 +1,8 @@
 controller:
   admin:
     username: admin
-    # пароль генерирует чарт (секрет jenkins/jenkins), up.ps1 печатает его в конце
+    # стенд: единый пароль admin для Argo CD, Kargo и Jenkins
+    password: "123"
 
   # UI: http://jenkins (Traefik + hosts)
   serviceType: ClusterIP

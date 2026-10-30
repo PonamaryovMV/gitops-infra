@@ -29,12 +29,12 @@ Workflow **publish-chart** проверяет чарт (`helm lint`, `helm templ
 
 ## Kargo
 
-- UI: http://kargo (ingress Traefik, TLS выключен — стенд). Логин `admin` / `admin`.
+- UI: http://kargo (ingress Traefik, TLS выключен — стенд). Логин `admin` / `123`.
 - Секрет `kargo/kargo-api` и доступы на запись в `gitops-main` / `gitops-prod` создаёт `scripts/windows/up.ps1`.
 - `minReconciliationInterval: 30s` — Warehouse видит новые коммиты за полминуты.
 
 ## Jenkins
 
-- UI: http://jenkins. Пароль `admin` печатает `up.ps1`.
+- UI: http://jenkins, `admin` / `123`.
 - Пользователь `kargo` (пароль — секрет `jenkins-kargo`): им Kargo запускает DAST.
 - Джобы `qa-at/BuildRelease`, `qa-at/ExcludeService`, `qa-at/DAST` описаны в `values.yaml` (Job DSL), Jenkinsfile'ы — в репозитории `jenkins`.
