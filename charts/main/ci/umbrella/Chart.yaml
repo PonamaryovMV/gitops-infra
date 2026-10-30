@@ -1,0 +1,7 @@
+apiVersion: v2
+name: qa-at-mgmt-chart
+version: 0.0.1
+dependencies:
+  - name: main
+    version: 0.0.2
+    repository: file://../..

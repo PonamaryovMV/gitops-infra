@@ -1,0 +1,5 @@
+global:
+  automated_system: qa
+  functional_system: at
+  appname: mgmt
+  environment: dev

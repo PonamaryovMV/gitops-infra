@@ -1,0 +1,33 @@
+# Контракт как у корпоративного main:
+# образ = <container.registry>/<global.automated_system>-<global.functional_system>-<global.appname>-<component>:<container.version>
+container:
+  registry: none
+  version: none
+
+# Компоненты (образы) сервиса. Каждый — Deployment + Service.
+components:
+  - name: api
+    port: 8080
+    ingress: true     # публикуется по имени <АС>-<ФП>-<сервис>-<окружение>
+  - name: worker
+    port: 8080
+
+replicas: 1
+
+ingress:
+  enabled: true
+  className: traefik
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 64Mi
+
+# global задаётся в values окружения:
+# global:
+#   automated_system: qa
+#   functional_system: at
+#   appname: mgmt
+#   environment: dev

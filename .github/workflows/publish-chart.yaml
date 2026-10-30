@@ -1,0 +1,35 @@
+# Проверка и публикация общего чарта main в ghcr.io/<owner>/charts/main (OCI).
+# Запускается при изменении charts/main или вручную.
+name: publish-chart
+
+on:
+  push:
+    branches: [main]
+    paths: ["charts/main/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: azure/setup-helm@v4
+      - name: helm lint
+        run: helm lint charts/main --set global.automated_system=qa,global.functional_system=at,global.appname=mgmt,global.environment=dev
+      - name: helm template (umbrella как в gitops)
+        run: |
+          cd charts/main/ci/umbrella
+          helm dependency build
+          helm template qa-at-mgmt-dev . -f values.yaml -f release.yaml | tee /tmp/out.yaml
+          grep -q 'image: ghcr.io/ponamaryovmv/qa-at-mgmt-api:release-1-101' /tmp/out.yaml
+          grep -q 'host: qa-at-mgmt-dev' /tmp/out.yaml
+      - name: helm push
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          helm package charts/main -d /tmp/pkg
+          helm push /tmp/pkg/main-*.tgz "oci://ghcr.io/${owner}/charts"

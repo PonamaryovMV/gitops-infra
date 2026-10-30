@@ -1,0 +1,17 @@
+{{- range $c := .Values.components }}
+{{- $ctx := dict "root" $ "component" $c }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "main.prefix" $ }}-{{ $c.name }}
+  labels:
+    {{- include "main.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    {{- include "main.selector" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+{{- end }}

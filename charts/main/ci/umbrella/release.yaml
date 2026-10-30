@@ -1,0 +1,7 @@
+main:
+  container:
+    registry: ghcr.io/ponamaryovmv
+    version: release-1-101
+list_image_build:
+  - ghcr.io/ponamaryovmv/qa-at-mgmt-api:release-1-101
+  - ghcr.io/ponamaryovmv/qa-at-mgmt-worker:release-1-101

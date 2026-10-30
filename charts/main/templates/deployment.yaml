@@ -1,0 +1,38 @@
+{{- range $c := .Values.components }}
+{{- $ctx := dict "root" $ "component" $c }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "main.prefix" $ }}-{{ $c.name }}
+  labels:
+    {{- include "main.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ $.Values.replicas }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "main.selector" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "main.labels" $ctx | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $c.name }}
+          image: {{ $.Values.container.registry | default "none" }}/{{ include "main.prefix" $ }}-{{ $c.name }}:{{ $.Values.container.version | default "none" }}
+          ports:
+            - name: http
+              containerPort: {{ $c.port | default 8080 }}
+          env:
+            - name: APP_ENVIRONMENT
+              value: {{ $.Values.global.environment | quote }}
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            periodSeconds: 15
+          resources:
+            {{- toYaml $.Values.resources | nindent 12 }}
+{{- end }}
