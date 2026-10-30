@@ -3,10 +3,14 @@ controller:
     username: admin
     # пароль генерирует чарт (секрет jenkins/jenkins), up.ps1 печатает его в конце
 
-  # UI: http://localhost:8090 (NodePort → extraPortMappings в kind-config)
-  serviceType: NodePort
-  nodePort: 30090
-  jenkinsUrl: http://localhost:8090
+  # UI: http://jenkins (Traefik + hosts)
+  serviceType: ClusterIP
+  jenkinsUrl: http://jenkins
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hostName: jenkins
+    path: /
 
   resources:
     requests:
@@ -16,21 +20,33 @@ controller:
       memory: 2Gi
 
   additionalPlugins:
-    - job-dsl:latest                # джобы описываются в JCasC ниже
-    - pipeline-utility-steps:latest # readJSON для отчётов QG
-    - pipeline-graph-view:latest    # наглядный граф стадий
+    - job-dsl:latest                # джобы описаны в JCasC ниже
+    - pipeline-graph-view:latest    # граф стадий
 
-  # Секрет jenkins-github (ключ token) создаёт up.ps1 из GITHUB_TOKEN.
-  # В JCasC доступен как ${jenkins-github-token}.
+  # Секреты создаёт scripts/windows/up.ps1:
+  #   jenkins-github/token   — GitHub PAT: Jenkins пишет в gitops-main (ветка qa-at) и gitops-prod
+  #   jenkins-kargo/password — учётка kargo: Kargo запускает джобу DAST и читает её статус
   additionalExistingSecrets:
     - name: jenkins-github
       keyName: token
+    - name: jenkins-kargo
+      keyName: password
 
   JCasC:
+    securityRealm: |-
+      local:
+        allowsSignup: false
+        users:
+          - id: "${chart-admin-username}"
+            name: "Jenkins Admin"
+            password: "${chart-admin-password}"
+          - id: "kargo"
+            name: "Kargo (запуск DAST)"
+            password: "${jenkins-kargo-password}"
     configScripts:
       welcome: |
         jenkins:
-          systemMessage: "GitOps-стенд: Jenkins → Quality Gate (эмуляция SCA) → GitHub Actions → ghcr → Kargo"
+          systemMessage: "GitOps-стенд, ФП qa/at: BuildRelease → ветка qa-at → Kargo (dev → test → uat[DAST] → prod). ExcludeService — исключение сервиса."
       credentials: |
         credentials:
           system:
@@ -39,26 +55,63 @@ controller:
                   - string:
                       scope: GLOBAL
                       id: github-token
-                      description: GitHub PAT для запуска сборки в gitops-main
+                      description: GitHub PAT (запись в gitops-main и gitops-prod)
                       secret: "${jenkins-github-token}"
       jobs: |
         jobs:
-          - script: >
-              folder('gitops-stand') {
-                description('Пайплайны тестового стенда')
+          - script: |
+              folder('qa-at') {
+                displayName('ФП qa/at')
+                description('Релизный флоу ФП qa/at: BuildRelease, ExcludeService, DAST')
               }
-          - script: >
-              pipelineJob('gitops-stand/app-release') {
-                description('Проверки + Quality Gate (эмуляция SCA) → сборка образа → Kargo')
+          - script: |
+              pipelineJob('qa-at/BuildRelease') {
+                description('Образы → SCA → SAST → Quality Gate → один коммит release.yaml в ветку ФП qa-at (Kargo создаст Freight)')
+                parameters {
+                  stringParam('TASK', 'TASK-2', 'Релизная задача')
+                  choiceParam('VERSION', ['release-2-102', 'release-3-103', 'release-1-101'], 'Тег образов сервисов')
+                  stringParam('SERVICES', 'mgmt,core,api', 'Сервисы ФП через запятую: mgmt, core, api')
+                  choiceParam('SCA_PROFILE', ['clean', 'low', 'medium', 'high', 'critical'], 'Эмуляция SCA: high/critical не проходят QG')
+                  choiceParam('SAST_PROFILE', ['clean', 'low', 'medium', 'high', 'critical'], 'Эмуляция SAST: high/critical не проходят QG')
+                }
                 definition {
                   cpsScm {
-                    scm {
-                      git {
-                        remote { url('https://github.com/PonamaryovMV/jenkins.git') }
-                        branch('*/main')
-                      }
-                    }
-                    scriptPath('Jenkinsfile')
+                    scm { git { remote { url('https://github.com/PonamaryovMV/jenkins.git') }; branch('*/main') } }
+                    scriptPath('pipelines/BuildRelease.Jenkinsfile')
+                    lightweight(true)
+                  }
+                }
+              }
+          - script: |
+              pipelineJob('qa-at/ExcludeService') {
+                description('Исключение сервиса из релиза: planned — новый Freight через uat; urgent — срочно в prod; clear — снять срочное')
+                parameters {
+                  choiceParam('SERVICE', ['mgmt', 'core', 'api'], 'Сервис ФП')
+                  choiceParam('MODE', ['planned', 'urgent', 'clear'], 'planned / urgent / clear')
+                  stringParam('TASK', 'TASK-2', 'Релизная задача')
+                  stringParam('REASON', 'INC-1', 'Причина (инцидент)')
+                }
+                definition {
+                  cpsScm {
+                    scm { git { remote { url('https://github.com/PonamaryovMV/jenkins.git') }; branch('*/main') } }
+                    scriptPath('pipelines/ExcludeService.Jenkinsfile')
+                    lightweight(true)
+                  }
+                }
+              }
+          - script: |
+              pipelineJob('qa-at/DAST') {
+                description('DAST (эмуляция). Запускает Kargo после выкатки на uat и ждёт статус')
+                parameters {
+                  stringParam('REPOS', '', 'Список репозиториев через запятую (передаёт Kargo)')
+                  stringParam('ENVIRONMENT', 'uat', 'Окружение')
+                  stringParam('RELEASE', '', 'Коммит ветки ФП (Freight)')
+                  stringParam('FAIL_REPOS', '', 'Эмуляция: подстроки репозиториев, по которым DAST упадёт (например qa-at-core)')
+                }
+                definition {
+                  cpsScm {
+                    scm { git { remote { url('https://github.com/PonamaryovMV/jenkins.git') }; branch('*/main') } }
+                    scriptPath('pipelines/DAST.Jenkinsfile')
                     lightweight(true)
                   }
                 }

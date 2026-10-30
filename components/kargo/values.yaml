@@ -1,23 +1,29 @@
 api:
-  # UI/API: http://localhost:8081 (NodePort → extraPortMappings в kind-config)
-  host: localhost:8081
+  # UI/API: http://kargo (Traefik + hosts, см. scripts/windows/up.ps1)
+  host: kargo
   service:
-    type: NodePort
-    nodePort: 30081
+    type: ClusterIP
   tls:
     enabled: false
-  # Секрет kargo-api (хэш пароля admin + ключ подписи) создаёт scripts/up.sh,
+    terminatedUpstream: false
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    pathType: Prefix
+    tls:
+      enabled: false
+  # Секрет kargo-api (хэш пароля admin + ключ подписи) создаёт scripts/windows/up.ps1,
   # чтобы ничего секретного не лежало в публичном репозитории.
   secret:
     name: kargo-api
   argocd:
     urls:
-      "": http://localhost:8080
+      "": http://argocd
 
 controller:
   argocd:
     namespace: argocd
   reconcilers:
     warehouses:
-      # Стенд: новые образы подхватываются за ~30с, а не за 5 минут
+      # Стенд: новые коммиты Jenkins подхватываются за ~30с, а не за 5 минут
       minReconciliationInterval: 30s

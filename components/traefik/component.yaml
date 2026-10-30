@@ -1,0 +1,6 @@
+# Traefik v3.7 (chart 42.2.0) — ingress для argocd, kargo, jenkins и приложений по именам из hosts
+namespace: traefik
+chart:
+  repoURL: https://traefik.github.io/charts
+  name: traefik
+  version: 42.2.0

@@ -11,19 +11,30 @@ components/<name>/
 
 | Компонент | Чарт | Зачем |
 |---|---|---|
+| `traefik` | traefik/traefik `42.2.0` (v3.7) | вход на стенд: http://argocd, http://kargo, http://jenkins, http://qa-at-&lt;сервис&gt;-&lt;окружение&gt; |
 | `cert-manager` | jetstack/cert-manager `v1.21.3` | сертификаты для webhook'ов Kargo |
-| `argo-rollouts` | argo/argo-rollouts `2.43.8` (v1.10.1) | canary приложений и анализ для верификации Kargo |
-| `kargo` | oci ghcr.io/akuity/kargo-charts/kargo `1.12.5` | промоушены dev → stage → prod |
-| `jenkins` | jenkins/jenkins `5.10.5` (2.580.2) | CI: тесты + Quality Gate (эмуляция SCA), джоба из [jenkins](https://github.com/PonamaryovMV/jenkins) через JCasC |
+| `argo-rollouts` | argo/argo-rollouts `2.43.8` (v1.10.1) | контроллер AnalysisRun — на нём работает верификация Kargo (DAST) |
+| `kargo` | oci ghcr.io/akuity/kargo-charts/kargo `1.12.5` | промоушен ФП dev → test → uat → prod |
+| `jenkins` | jenkins/jenkins `5.10.5` (2.580.2) | BuildRelease, ExcludeService, DAST — джобы JCasC из [jenkins](https://github.com/PonamaryovMV/jenkins) |
 
 Добавить компонент = создать папку с этими двумя файлами и закоммитить.
 Обновить = поменять `version` в `component.yaml`.
 
+## Общий чарт main
+
+`charts/main` — аналог корпоративного чарта `main`: образ
+`<container.registry>/<global.automated_system>-<global.functional_system>-<global.appname>-<компонент>:<container.version>`,
+на каждый компонент Deployment + Service, компонент с `ingress: true` публикуется как `<АС>-<ФП>-<сервис>-<окружение>`.
+Workflow **publish-chart** проверяет чарт (`helm lint`, `helm template`) и публикует его в `oci://ghcr.io/ponamaryovmv/charts`.
+
 ## Kargo
 
-- UI/API: http://localhost:8081 (NodePort 30081, TLS выключен — стенд).
-- Секрет `kargo/kargo-api` (bcrypt-хэш пароля admin + ключ подписи токенов) создаёт `scripts/up.sh`,
-  в git его нет.
-- Доступ на запись в GitHub — секрет `kargo-shared-resources/github-creds` (тоже из `up.sh`),
-  общий для всех Kargo-проектов.
-- `minReconciliationInterval: 30s` — Warehouse видит новые теги за полминуты (по умолчанию 5 минут).
+- UI: http://kargo (ingress Traefik, TLS выключен — стенд). Логин `admin` / `admin`.
+- Секрет `kargo/kargo-api` и доступы на запись в `gitops-main` / `gitops-prod` создаёт `scripts/windows/up.ps1`.
+- `minReconciliationInterval: 30s` — Warehouse видит новые коммиты за полминуты.
+
+## Jenkins
+
+- UI: http://jenkins. Пароль `admin` печатает `up.ps1`.
+- Пользователь `kargo` (пароль — секрет `jenkins-kargo`): им Kargo запускает DAST.
+- Джобы `qa-at/BuildRelease`, `qa-at/ExcludeService`, `qa-at/DAST` описаны в `values.yaml` (Job DSL), Jenkinsfile'ы — в репозитории `jenkins`.

@@ -1,0 +1,19 @@
+# Вход на стенд: kind пробрасывает 127.0.0.1:80 → NodePort 30000 → Traefik.
+service:
+  type: NodePort
+
+ports:
+  web:
+    nodePort: 30000
+  websecure:
+    expose:
+      default: false
+
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+  name: traefik
+
+providers:
+  kubernetesIngress:
+    enabled: true
