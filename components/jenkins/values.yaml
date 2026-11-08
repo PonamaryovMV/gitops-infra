@@ -1,4 +1,14 @@
 controller:
+  # Свой образ с плагинами внутри (репозиторий jenkins, папка controller/):
+  # при старте pod'а плагины не качаются с updates.jenkins.io — Jenkins поднимается
+  # после перезапуска ПК без интернета/DNS. Новый плагин — в jenkins/controller/plugins.txt.
+  image:
+    registry: ghcr.io
+    repository: ponamaryovmv/jenkins-controller
+    tag: "2.580.2-jdk25"
+    pullPolicy: IfNotPresent   # up.ps1 подтягивает образ в ноду заранее
+  installPlugins: false
+
   admin:
     username: admin
     # стенд: единый пароль admin для Argo CD, Kargo и Jenkins
@@ -19,10 +29,6 @@ controller:
       memory: 512Mi
     limits:
       memory: 2Gi
-
-  additionalPlugins:
-    - job-dsl:latest                # джобы описаны в JCasC ниже
-    - pipeline-graph-view:latest    # граф стадий
 
   # Секреты создаёт scripts/windows/up.ps1:
   #   jenkins-github/token   — GitHub PAT: Jenkins пишет в gitops-main (ветка qa-at) и gitops-prod

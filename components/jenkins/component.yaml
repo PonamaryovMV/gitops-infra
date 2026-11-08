@@ -1,4 +1,5 @@
 # Jenkins 2.580.2 (chart 5.10.5) — CI с эмуляцией Quality Gate (SCA).
+# Контроллер — свой образ с плагинами (ghcr.io/ponamaryovmv/jenkins-controller).
 # Пайплайн берётся из https://github.com/PonamaryovMV/jenkins (Jenkinsfile).
 namespace: jenkins
 chart:
