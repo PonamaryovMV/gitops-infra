@@ -27,6 +27,11 @@ jobs:
           helm template qa-at-mgmt-dev . -f values.yaml -f release.yaml | tee /tmp/out.yaml
           grep -q 'image: ghcr.io/ponamaryovmv/qa-at-mgmt-api:release-1-101' /tmp/out.yaml
           grep -q 'host: qa-at-mgmt-dev' /tmp/out.yaml
+          # ФП на чужих образах: хост свой, образ — qa-at
+          helm template qa-bt-mgmt-dev . -f values.yaml -f release.yaml \
+            --set global.functional_system=bt,main.container.imageFunctionalSystem=at > /tmp/out2.yaml
+          grep -q 'image: ghcr.io/ponamaryovmv/qa-at-mgmt-api:release-1-101' /tmp/out2.yaml
+          grep -q 'host: qa-bt-mgmt-dev' /tmp/out2.yaml
       - name: helm push
         run: |
           owner="${GITHUB_REPOSITORY_OWNER,,}"

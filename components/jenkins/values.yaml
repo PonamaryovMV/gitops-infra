@@ -90,6 +90,29 @@ controller:
                 }
               }
           - script: |
+              folder('qa-bt') {
+                displayName('ФП qa/bt')
+                description('ФП с порядком выкатки сервисов: deploy.dependsOn в values → план волн → Kargo выкатывает волнами')
+              }
+          - script: |
+              pipelineJob('qa-bt/BuildRelease') {
+                description('Как qa-at/BuildRelease + план выкатки по волнам (release-plan.yaml) в ветку ФП qa-bt')
+                parameters {
+                  stringParam('TASK', 'TASK-2', 'Релизная задача')
+                  choiceParam('VERSION', ['release-2-102', 'release-3-103', 'release-1-101'], 'Тег образов сервисов')
+                  stringParam('SERVICES', 'mgmt,core,api', 'Сервисы ФП через запятую: mgmt, core, api')
+                  choiceParam('SCA_PROFILE', ['clean', 'low', 'medium', 'high', 'critical'], 'Эмуляция SCA: high/critical не проходят QG')
+                  choiceParam('SAST_PROFILE', ['clean', 'low', 'medium', 'high', 'critical'], 'Эмуляция SAST: high/critical не проходят QG')
+                }
+                definition {
+                  cpsScm {
+                    scm { git { remote { url('https://github.com/PonamaryovMV/jenkins.git') }; branch('*/main') } }
+                    scriptPath('pipelines/BuildRelease.Jenkinsfile')
+                    lightweight(true)
+                  }
+                }
+              }
+          - script: |
               pipelineJob('qa-at/ExcludeService') {
                 description('Исключение сервиса из релиза: planned — новый Freight через uat; urgent — срочно в prod; clear — снять срочное')
                 parameters {

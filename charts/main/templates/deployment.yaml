@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: {{ $c.name }}
-          image: {{ $.Values.container.registry | default "none" }}/{{ include "main.prefix" $ }}-{{ $c.name }}:{{ $.Values.container.version | default "none" }}
+          image: {{ $.Values.container.registry | default "none" }}/{{ include "main.imagePrefix" $ }}-{{ $c.name }}:{{ $.Values.container.version | default "none" }}
           ports:
             - name: http
               containerPort: {{ $c.port | default 8080 }}

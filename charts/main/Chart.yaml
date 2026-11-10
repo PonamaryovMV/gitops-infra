@@ -2,5 +2,5 @@ apiVersion: v2
 name: main
 description: Общий чарт сервиса стенда (аналог корпоративного main из helm-devops)
 type: application
-version: 0.0.2
-appVersion: "0.0.2"
+version: 0.0.3
+appVersion: "0.0.3"

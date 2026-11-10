@@ -3,6 +3,8 @@
 container:
   registry: none
   version: none
+  # ФП, чьи образы использовать (по умолчанию — своя global.functional_system)
+  imageFunctionalSystem: ""
 
 # Компоненты (образы) сервиса. Каждый — Deployment + Service.
 components:
